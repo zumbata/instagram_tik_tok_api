@@ -1,0 +1,24 @@
+{
+  "name": "insta_tik_tok",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/index.js --exec babel-node --"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "instagram-private-api": "github:dilame/instagram-private-api"
+  },
+  "devDependencies": {
+    "babel-preset-env": "^1.7.0",
+    "eslint": "^6.7.2",
+    "nodemon": "^2.0.2"
+  }
+}
