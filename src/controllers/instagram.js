@@ -42,13 +42,13 @@ router.get("/instagram/login", (req, res) => {
 	res.send(`
 		${heading}
 		<form method="post">
-		<label>Username: </label>
-		<input type="text" name="username">
-		<br>
-		<label>Password: </label>
-		<input type="password" name="password">
-		<br>
-		<input type="submit" name="submit" value="Submit">
+			<label>Username: </label>
+			<input type="text" name="username">
+			<br>
+			<label>Password: </label>
+			<input type="password" name="password">
+			<br>
+			<input type="submit" name="submit" value="Submit">
 		</form>
 	`);
 });
@@ -72,8 +72,7 @@ router.all('/logout',(req,res) => {
 		req.session.destroy();
 		sess = undefined;
 	}
-		
-    res.redirect('/instagram');
+	res.redirect('/instagram');
 });
 
 router.get("/instagram/sendCode", (req, res) => {
