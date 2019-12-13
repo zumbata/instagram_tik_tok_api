@@ -10,7 +10,7 @@ const heading = `<h1>Instagram</h1>`;
 
 router.get("/instagram", (req, res) => {
 	sess = req.session;
-	if(typeof neverDeclared === "undefined") {
+	if(typeof sess.user !== "undefined") {
 		res.send(`
 			${heading}
 			<form method="post" action="instagram/like">
@@ -35,7 +35,7 @@ router.get("/instagram", (req, res) => {
 
 router.get("/instagram/login", (req, res) => {
 	sess = req.session;
-	if(typeof sess.user === "undefined") {
+	if(typeof sess.user !== "undefined") {
 		res.redirect('/instagram');
 		return;
 	}
@@ -60,14 +60,19 @@ router.post("/instagram/login", async (req, res) => {
 	Bluebird.try(async () => {
 		sess.user = await ig.account.login(username, password);
 		res.redirect('/instagram');
-	}).catch(IgCheckpointError, async () => {
+	}).catch(async () => {
 		await ig.challenge.auto(true);
 		res.redirect('/instagram/sendCode');
 	});
 });
 
 router.all('/logout',(req,res) => {
-    req.session.destroy();
+	if(typeof req.session !== "undefined")
+	{
+		req.session.destroy();
+		sess = undefined;
+	}
+		
     res.redirect('/instagram');
 });
 
@@ -92,50 +97,58 @@ router.get("/instagram/wrongCode", (req, res) => {
 	`);
 });
 
-router.post("/instagram/sendCode", async (req, res) => {
+router.post("/instagram/sendCode", (req, res) => {
 	sess = req.session;
 	Bluebird.try(async () => {
 		sess.user = await ig.challenge.sendSecurityCode(code);
 		res.redirect('/instagram');
 		
-	}).catch(IgChallengeWrongCodeError, async () => {
+	}).catch(async () => {
 		res.redirect('/instagram/wrongCode');
 	});
 });
 
-router.post("/instagram/like", async (req, res) => {
+router.post("/instagram/like", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user === "undefined") {
 		res.redirect('/instagram/login');
 		return;
 	}
-	await ig.media.like({
-		mediaId: req.params.postId,
-		moduleInfo: {
-			module_name: 'profile',
-			user_id: sess.user.pk,
-			username: sess.user.username,
-		},
-		d: 1
+	Bluebird.try(async () => {
+		await ig.media.like({
+			mediaId: req.body.postId,
+			moduleInfo: {
+				module_name: 'profile',
+				user_id: sess.user.pk,
+				username: sess.user.username,
+			},
+			d: 1
+		});
+		res.sendStatus(200);
+	}).catch(async () => {
+		res.status(404).send("Not found post!");
 	});
-	res.sendStatus(200);
 });
 
-router.post("/instagram/unlike", async (req, res) => {
+router.post("/instagram/unlike", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user === "undefined") {
 		res.redirect('/instagram/login');
 		return;
 	}
-	await ig.media.unlike({
-		mediaId: req.params.postId,
-		moduleInfo: {
-			module_name: 'profile',
-			user_id: sess.user.pk,
-			username: sess.user.username,
-		}
+	Bluebird.try(async () => {
+		await ig.media.unlike({
+			mediaId: req.body.postId,
+			moduleInfo: {
+				module_name: 'profile',
+				user_id: sess.user.pk,
+				username: sess.user.username,
+			}
+		});
+		res.sendStatus(200);
+	}).catch(async () => {
+		res.status(404).send("Not found post!");
 	});
-	res.sendStatus(200);
 });
 
 export default router;
