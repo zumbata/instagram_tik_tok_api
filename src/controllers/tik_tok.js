@@ -1,18 +1,19 @@
 import { Router } from "express"
 import TikTokAPI, { getRequestParams } from 'tiktok-api';
+import view from '../views/tik_tok.view'
 
 const signURL = async (url, ts, deviceId) => {
-	const as = 'anti-spam parameter 1';
-	const cp = 'anti-spam parameter 2'
-	const mas = 'anti-spam parameter 3';
+	const as = '23d22211fe06dcd8a2927b2fbc6cd74d';
+	const cp = '164967f5772b6f50e2424c062c804a23'
+	const mas = 'd0cbc0a4b4b89fe0525c449c785cc736';
 	return `${url}&as=${as}&cp=${cp}&mas=${mas}`;
 }
 
 const params = getRequestParams({
-	device_id: '<device_id>',
-	fp: '<device_fingerprint>',
-	iid: '<install_id>',
-	openudid: '<device_open_udid>',
+	device_id: '6594726280552547846',
+	fp: '',
+	iid: '6620659482206930694',
+	openudid: 'b307b864b574e818',
 });
 
 const api = new TikTokAPI(params, { signURL });
@@ -21,41 +22,19 @@ const session = require('express-session')
 const router = Router()
 var sess;
 
-const heading = `<h1>Tik Tok</h1>`
-
 router.get("/tik_tok", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user !== "undefined") {
 		res.send(`
-			${heading}
-			<form method="post" action="tik_tok/like">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Like">
-			</form>
-			<form method="post" action="tik_tok/unlike">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Unlike">
-			</form>
-			<form method="post" action="tik_tok/follow">
-				<span>User ID:</span>
-				<input type="text" name="userId">
-				<input type="submit" name="submit" value="Follow">
-			</form>
-			<form method="post" action="tik_tok/unfollow">
-				<span>User ID:</span>
-				<input type="text" name="userId">
-				<input type="submit" name="submit" value="Unfollow">
-			</form>
-			<a href="logout">Logout</a>
+			${view.heading}
+			${view.logged.root}
 		`);
 		return;
 	}
 	res.send(`
-		${heading}
-		Okay, go <a href='tik_tok/login'>log yourself</a>
-		`);
+		${view.heading}
+		${view.notLogged.root}	
+	`);
 })
 
 // LOGIN
@@ -67,26 +46,30 @@ router.get("/tik_tok/login", (req, res) => {
 		return;
 	}
 	res.send(`
-		${heading}
-		<form method="post">
-			<label>Username: </label>
-			<input type="text" name="username">
-			<br>
-			<label>Password: </label>
-			<input type="password" name="password">
-			<br>
-			<input type="submit" name="submit" value="Submit">
-		</form>
+		${view.heading}
+		${view.notLogged.login}
 	`);
 })
 
 router.post("/tik_tok/login", (req, res) => {
 	sess = req.session;
-	var username = req.body.username, password = req.body.password;
-	api.loginWithUsername(username, password)
+	var email = req.body.email, password = req.body.password,
+	username = req.body.username, email_or_username = req.body.email_username,
+	func1, field;
+	if(email_or_username == "username")
+	{
+		func1 = api.loginWithEmail;
+		field = email;
+	}
+	else
+	{
+		func1 = api.loginWithUsername;
+		field = username;
+	}
+	func1(field, password)
 		.then(res1 => {
 			if(typeof res1.data.user_id === "undefined")
-				res.status(401).send("Wrong username or password");
+				res.status(401).send(res1.data);
 			else
 			{
 				sess.user = res1.data;

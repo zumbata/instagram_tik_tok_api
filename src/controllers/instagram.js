@@ -1,36 +1,26 @@
 import { Router } from "express";
 import { IgApiClient, IgCheckpointError } from 'instagram-private-api';
 import Bluebird from 'bluebird';
+import view from '../views/instagram.view'
 
 const session = require('express-session')
 const ig = new IgApiClient();
 const router = Router();
 var sess;
-const heading = `<h1>Instagram</h1>`;
 
 router.get("/instagram", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user !== "undefined") {
 		res.send(`
-			${heading}
-			<form method="post" action="instagram/like">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Like">
-			</form>
-			<form method="post" action="instagram/unlike">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Unlike">
-			</form>
-			<a href="logout">Logout</a>
+			${view.heading}
+			${view.logged.root}
 		`);
 		return;
 	}
 	res.send(`
-		${heading}
-		Okay, go <a href='instagram/login'>log yourself</a>
-		`);
+		${view.heading}
+		${view.notLogged.root}
+	`);
 });
 
 router.get("/instagram/login", (req, res) => {
@@ -40,16 +30,8 @@ router.get("/instagram/login", (req, res) => {
 		return;
 	}
 	res.send(`
-		${heading}
-		<form method="post">
-			<label>Username: </label>
-			<input type="text" name="username">
-			<br>
-			<label>Password: </label>
-			<input type="password" name="password">
-			<br>
-			<input type="submit" name="submit" value="Submit">
-		</form>
+		${view.heading}
+		${view.notLogged.login}
 	`);
 });
 
@@ -78,7 +60,7 @@ router.all('/logout',(req,res) => {
 router.get("/instagram/sendCode", (req, res) => {
 	sess = req.session;
 	res.send(`
-		${heading}
+		${view.heading}
 		<form method="post">
 		<label>Enter the code from the SMS: </label>
 		<input type="text" name="code">
