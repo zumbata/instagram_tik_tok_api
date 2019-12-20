@@ -89,46 +89,31 @@ router.post("/instagram/sendCode", (req, res) => {
 	});
 });
 
-router.post("/instagram/like", (req, res) => {
+router.post("/instagram/follow", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user === "undefined") {
 		res.redirect('/instagram/login');
 		return;
 	}
 	Bluebird.try(async () => {
-		await ig.media.like({
-			mediaId: req.body.postId,
-			moduleInfo: {
-				module_name: 'profile',
-				user_id: sess.user.pk,
-				username: sess.user.username,
-			},
-			d: 1
-		});
+		await ig.friendship.create(req.body.userId);
 		res.sendStatus(200);
 	}).catch(async () => {
-		res.status(404).send("Not found post!");
+		res.status(404).send("Not found user!");
 	});
 });
 
-router.post("/instagram/unlike", (req, res) => {
+router.post("/instagram/unfollow", (req, res) => {
 	sess = req.session;
 	if(typeof sess.user === "undefined") {
 		res.redirect('/instagram/login');
 		return;
 	}
 	Bluebird.try(async () => {
-		await ig.media.unlike({
-			mediaId: req.body.postId,
-			moduleInfo: {
-				module_name: 'profile',
-				user_id: sess.user.pk,
-				username: sess.user.username,
-			}
-		});
+		await ig.friendship.destroy(req.body.userId);
 		res.sendStatus(200);
 	}).catch(async () => {
-		res.status(404).send("Not found post!");
+		res.status(404).send("Not found user!");
 	});
 });
 

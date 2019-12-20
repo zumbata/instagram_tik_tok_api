@@ -4,15 +4,15 @@ const view = {
 	`,
 	logged : {
 		root : `
-			<form method="post" action="instagram/like">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Like">
+			<form method="post" action="instagram/follow">
+				<span>User ID:</span>
+				<input type="text" name="userId">
+				<input type="submit" name="submit" value="Follow">
 			</form>
-			<form method="post" action="instagram/unlike">
-				<span>Post ID:</span>
-				<input type="text" name="postId">
-				<input type="submit" name="submit" value="Unlike">
+			<form method="post" action="instagram/unfollow">
+				<span>User ID:</span>
+				<input type="text" name="userId">
+				<input type="submit" name="submit" value="Unfollow">
 			</form>
 			<a href="logout">Logout</a>
 		`,
