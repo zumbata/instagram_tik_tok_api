@@ -2,7 +2,7 @@ import { Router } from "express";
 import { IgApiClient , IgCheckpointError, IgLoginTwoFactorRequiredError, IgLoginBadPasswordError} from 'instagram-private-api';
 import Bluebird from 'bluebird';
 import view from '../views/instagram.view'
-import request from 'request-promise'
+import * as functions from '../inc/functions'
 import { get } from 'lodash';
 
 const ig = new IgApiClient();
@@ -135,14 +135,8 @@ router.post("/instagram/follow", async (req, res) => {
 		res.redirect('/instagram/login');
 		return;
 	}
-	var uid = await request({
-        uri: `https://www.instagram.com/${req.body.username}/?__a=1`,
-        json: true
-    }).then((body) => {
-        return uid = parseInt(body.graphql.user.id);
-    });
 	Bluebird.try(async () => {
-		await ig.friendship.create(uid);
+		await ig.friendship.create(await functions.getUid(req.body.username));
 		res.sendStatus(200);
 	}).catch(async () => {
 		res.status(404).send("Not found user!");
@@ -155,14 +149,8 @@ router.post("/instagram/unfollow", async (req, res) => {
 		res.redirect('/instagram/login');
 		return;
 	}
-	var uid = await request({
-        uri: `https://www.instagram.com/${req.body.username}/?__a=1`,
-        json: true
-    }).then((body) => {
-        return uid = parseInt(body.graphql.user.id);
-    });
 	Bluebird.try(async () => {
-		await ig.friendship.destroy(uid);
+		await ig.friendship.destroy(await functions.getUid(req.body.username));
 		res.sendStatus(200);
 	}).catch(async (err) => {
 		res.status(404).send("Not found user!");
