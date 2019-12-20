@@ -5,13 +5,13 @@ const view = {
 	logged : {
 		root : `
 			<form method="post" action="instagram/follow">
-				<span>User ID:</span>
-				<input type="text" name="userId">
+				<span>Username</span>
+				<input type="text" name="username">
 				<input type="submit" name="submit" value="Follow">
 			</form>
 			<form method="post" action="instagram/unfollow">
-				<span>User ID:</span>
-				<input type="text" name="userId">
+				<span>Username</span>
+				<input type="text" name="username">
 				<input type="submit" name="submit" value="Unfollow">
 			</form>
 			<a href="logout">Logout</a>
