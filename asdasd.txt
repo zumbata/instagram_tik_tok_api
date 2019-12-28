@@ -1,9 +1,0 @@
-host/instagram/login
-host/instagram/like/{post_id}
-host/instagram/unlike/{post_id}
-
-host/tik_tok/login
-host/tik_tok/follow/{user_id}
-host/tik_tok/unfollow/{user_id}
-host/tik_tok/like/{post_id}
-host/tik_tok/unlike/{post_id}

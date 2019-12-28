@@ -1,50 +1,71 @@
-import { Router } from "express";
-import { IgApiClient , IgCheckpointError, IgLoginTwoFactorRequiredError, IgLoginBadPasswordError} from 'instagram-private-api';
+import {
+	Router
+} from "express";
+import {
+	IgApiClient,
+	IgCheckpointError,
+	IgLoginTwoFactorRequiredError,
+	IgLoginBadPasswordError
+} from 'instagram-private-api';
 import Bluebird from 'bluebird';
 import view from '../views/instagram.view'
+import expressMongoDb from 'express-mongo-db'
 import * as functions from '../inc/functions'
-import { get } from 'lodash';
-
+import {
+	get
+} from 'lodash';
 const ig = new IgApiClient();
 const router = Router();
 var sess;
-
+router.use(expressMongoDb('mongodb://localhost/app'));
 router.get("/instagram", (req, res) => {
 	sess = req.session;
-	if(typeof sess.user !== "undefined") {
+	if (typeof sess.user !== "undefined")
 		res.send(`
 			${view.heading}
 			${view.logged.root}
 		`);
-		return;
-	}
-	res.send(`
-		${view.heading}
-		${view.notLogged.root}
-	`);
+	else
+		res.send(`
+			${view.heading}
+			${view.notLogged.root}
+		`);
 });
-
 router.get("/instagram/login", (req, res) => {
 	sess = req.session;
-	if(typeof sess.user !== "undefined") {
+	if (typeof sess.user !== "undefined")
 		res.redirect('/instagram');
-		return;
-	}
-	res.send(`
-		${view.heading}
-		${view.notLogged.login}
-	`);
+	else
+		res.send(`
+			${view.heading}
+			${view.notLogged.login}
+		`);
 });
-
 router.post("/instagram/login", (req, res) => {
 	sess = req.session;
-	var username = req.body.username, password = req.body.password;
+	var username = req.body.username,
+		password = req.body.password;
 	ig.state.generateDevice(username);
 	Bluebird.try(async () => {
 		sess.user = await ig.account.login(username, password);
-		res.redirect('/instagram');
-	}
-	).catch(
+		var users = req.db.collection("users");
+		users.findOne({
+			username: username
+		}, (err, item) => {
+			if (err) throw err;
+			if (!item)
+				users.insertOne({
+					username: username
+				}, (err, res) => {
+					if (err) throw err;
+					sess.uid = res.ops[0]._id;
+				})
+			else
+				sess.uid = item._id
+			console.log(sess.uid)
+			res.redirect('/instagram');
+		})
+	}).catch(
 		IgCheckpointError,
 		async () => {
 			await ig.challenge.auto(true);
@@ -61,16 +82,15 @@ router.post("/instagram/login", (req, res) => {
 			res.redirect(`/instagram/sendCode?type=tfa?username=${username}&tfi=${twoFactorIdentifier}`);
 		},
 	).catch(
-		IgLoginBadPasswordError, 
+		IgLoginBadPasswordError,
 		() => {
 			res.status(401).send("Wrong password");
 		}
 	);
 });
-
 router.get("/instagram/sendCode", (req, res) => {
 	sess = req.session;
-		res.send(`
+	res.send(`
 			${view.heading}
 			<form method="post">
 			<label>Enter the code from the SMS: </label>
@@ -83,7 +103,6 @@ router.get("/instagram/sendCode", (req, res) => {
 			</form>
 		`);
 });
-
 router.get("/instagram/wrongCode", (req, res) => {
 	sess = req.session;
 	res.send(`
@@ -91,18 +110,16 @@ router.get("/instagram/wrongCode", (req, res) => {
 		<a href="instagram/login">Login</a>
 	`);
 });
-
 router.post("/instagram/sendCode", (req, res) => {
 	sess = req.session;
-	if(req.body.type == "sms") {
+	if (req.body.type == "sms") {
 		Bluebird.try(async () => {
 			sess.user = await ig.challenge.sendSecurityCode(req.body.code);
 			res.redirect('/instagram');
 		}).catch(async () => {
 			res.redirect('/instagram/wrongCode');
 		});
-	}
-	else if(req.body.type == "tfa") {
+	} else if (req.body.type == "tfa") {
 		Bluebird.try(async () => {
 			sess.user = await ig.account.twoFactorLogin({
 				username: req.body.username,
@@ -110,51 +127,45 @@ router.post("/instagram/sendCode", (req, res) => {
 				twoFactorIdentifier: req.body.tfi,
 				verificationMethod: '1',
 				trustThisDevice: '1',
-			  });
+			});
 			res.redirect('/instagram');
 		}).catch(async () => {
 			res.redirect('/instagram/wrongCode');
 		});
-	}
-	else 
+	} else
 		res.redirect('/instagram/login');
 });
-
-router.all('/logout',(req,res) => {
-	if(typeof req.session !== "undefined")
-	{
+router.all('/logout', (req, res) => {
+	if (typeof req.session !== "undefined") {
 		req.session.destroy();
 		sess = undefined;
 	}
 	res.redirect('/instagram');
 });
-
 router.post("/instagram/follow", async (req, res) => {
 	sess = req.session;
-	if(typeof sess.user === "undefined") {
+	if (typeof sess.user === "undefined")
 		res.redirect('/instagram/login');
-		return;
+	else {
+		Bluebird.try(async () => {
+			await ig.friendship.create(await functions.getUid(req.body.username));
+			res.sendStatus(200);
+		}).catch(async () => {
+			res.status(404).send("Not found user!");
+		});
 	}
-	Bluebird.try(async () => {
-		await ig.friendship.create(await functions.getUid(req.body.username));
-		res.sendStatus(200);
-	}).catch(async () => {
-		res.status(404).send("Not found user!");
-	});
 });
-
 router.post("/instagram/unfollow", async (req, res) => {
 	sess = req.session;
-	if(typeof sess.user === "undefined") {
-		res.redirect('/instagram/login');
-		return;
+	if (typeof sess.user === "undefined")
+		res.redirect('/instagram/login')
+	else {
+		Bluebird.try(async () => {
+			await ig.friendship.destroy(await functions.getUid(req.body.username));
+			res.sendStatus(200);
+		}).catch(async (err) => {
+			res.status(404).send("Not found user!");
+		});
 	}
-	Bluebird.try(async () => {
-		await ig.friendship.destroy(await functions.getUid(req.body.username));
-		res.sendStatus(200);
-	}).catch(async (err) => {
-		res.status(404).send("Not found user!");
-	});
 });
-
 export default router;

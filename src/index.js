@@ -1,7 +1,6 @@
 import express from "express"
 import router from "./routes"
 import session from "express-session"
-
 const app = express()
 
 app.use(express.urlencoded())
