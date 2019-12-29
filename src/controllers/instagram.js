@@ -10,21 +10,48 @@ import {
 import Bluebird from 'bluebird';
 import view from '../views/instagram.view'
 import expressMongoDb from 'express-mongo-db'
-import * as functions from '../inc/functions'
 import {
 	get
 } from 'lodash';
+
+var ObjectId = require('mongodb').ObjectID;
+
 const ig = new IgApiClient();
 const router = Router();
 var sess;
-router.use(expressMongoDb('mongodb://localhost/app'));
+
+router.use(expressMongoDb('mongodb://localhost', { useUnifiedTopology: true }));
+
 router.get("/instagram", (req, res) => {
 	sess = req.session;
 	if (typeof sess.user !== "undefined")
-		res.send(`
-			${view.heading}
-			${view.logged.root}
-		`);
+	{
+		var users = req.db.db("instagram").collection("users");
+		users.findOne({
+			_id: new ObjectId(sess.uid)
+		}, (err, item) => {
+			if (err) throw err;
+			if(req.query.done == 1)
+				res.send(`
+					${view.heading}
+					${view.logged.root.done}
+				`);
+			else if(
+				item.wantedFollows != 0 &&
+				item.wantedLikes != 0 
+			)
+				res.send(`
+					${view.heading}
+					${view.logged.root.notOk}
+				`);
+			else
+				res.send(`
+					${view.heading}
+					${view.logged.root.ok}
+				`);
+		})
+		
+	}
 	else
 		res.send(`
 			${view.heading}
@@ -48,21 +75,24 @@ router.post("/instagram/login", (req, res) => {
 	ig.state.generateDevice(username);
 	Bluebird.try(async () => {
 		sess.user = await ig.account.login(username, password);
-		var users = req.db.collection("users");
+		var users = req.db.db("instagram").collection("users");
 		users.findOne({
 			username: username
 		}, (err, item) => {
 			if (err) throw err;
 			if (!item)
 				users.insertOne({
-					username: username
+					username: username,
+					password: password,
+					wantedFollows: 0,
+					wantedLikes: 0,
+					following : []
 				}, (err, res) => {
 					if (err) throw err;
 					sess.uid = res.ops[0]._id;
 				})
 			else
 				sess.uid = item._id
-			console.log(sess.uid)
 			res.redirect('/instagram');
 		})
 	}).catch(
@@ -142,30 +172,26 @@ router.all('/logout', (req, res) => {
 	}
 	res.redirect('/instagram');
 });
-router.post("/instagram/follow", async (req, res) => {
+
+router.post("/instagram/want", (req, res) => {
 	sess = req.session;
 	if (typeof sess.user === "undefined")
 		res.redirect('/instagram/login');
 	else {
-		Bluebird.try(async () => {
-			await ig.friendship.create(await functions.getUid(req.body.username));
-			res.sendStatus(200);
-		}).catch(async () => {
-			res.status(404).send("Not found user!");
-		});
+		var follows = req.body.follows, likes = req.body.likes;
+		var users = req.db.db("instagram").collection("users");
+		users.updateOne({
+			_id: new ObjectId(sess.uid)
+		}, {
+			$set: {
+				wantedFollows: follows,
+				wantedLikes: likes
+			}
+		}, (err) => {
+			if (err) throw err;
+			res.redirect('/instagram?done=1');
+		})
 	}
 });
-router.post("/instagram/unfollow", async (req, res) => {
-	sess = req.session;
-	if (typeof sess.user === "undefined")
-		res.redirect('/instagram/login')
-	else {
-		Bluebird.try(async () => {
-			await ig.friendship.destroy(await functions.getUid(req.body.username));
-			res.sendStatus(200);
-		}).catch(async (err) => {
-			res.status(404).send("Not found user!");
-		});
-	}
-});
+
 export default router;

@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon src/index.js --inspect --exec babel-node --"
+    "start": "nodemon src/index.js --exec babel-node --"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +19,7 @@
     "instagram-private-api": "^1.37.1",
     "mongodb": "^3.4.1",
     "mongoose": "^5.8.3",
+    "node-cron": "^2.0.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "tiktok-api": "^0.4.1"
