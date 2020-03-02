@@ -27,8 +27,15 @@ router.get("/instagram", (req, res) => {
 	if (typeof sess.user !== "undefined")
 	{
 		var users = req.db.db("instagram").collection("users");
+		var searchCol = "username"
+		var searchVal = sess.user.username
+		if (typeof sess.uid !== "undefined")
+		{
+			searchCol = "_id"
+			searchVal = new ObjectId(sess.uid)
+		}
 		users.findOne({
-			_id: new ObjectId(sess.uid)
+			[searchCol]: searchVal
 		}, (err, item) => {
 			if (err) throw err;
 			if(req.query.done == 1)
@@ -73,8 +80,8 @@ router.post("/instagram/login", (req, res) => {
 	var username = req.body.username,
 		password = req.body.password;
 	ig.state.generateDevice(username);
-	Bluebird.try(async () => {
-		sess.user = await ig.account.login(username, password);
+	Bluebird.try(() => {
+		sess.user = ig.account.login(username, password);
 		var users = req.db.db("instagram").collection("users");
 		users.findOne({
 			username: username
@@ -87,12 +94,13 @@ router.post("/instagram/login", (req, res) => {
 					wantedFollows: 0,
 					wantedLikes: 0,
 					following : []
-				}, (err, res) => {
+				}, (err, res2) => {
 					if (err) throw err;
-					sess.uid = res.ops[0]._id;
+					sess.uid = res2.ops[0]._id;
 				})
 			else
 				sess.uid = item._id
+			console.log("Getting here " + sess.uid)
 			res.redirect('/instagram');
 		})
 	}).catch(
@@ -117,6 +125,7 @@ router.post("/instagram/login", (req, res) => {
 			res.status(401).send("Wrong password");
 		}
 	);
+	
 });
 router.get("/instagram/sendCode", (req, res) => {
 	sess = req.session;

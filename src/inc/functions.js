@@ -18,7 +18,6 @@ export function follow_cron() {
 				var users_to_follow = users_arr.filter((u) => {
 					return (!user.following.includes(u._id) && user._id != u._id)
                 })
-                console.log(users_to_follow)
                 if(users_to_follow.length == 0)
                     continue;
 				users_to_follow.forEach(async (user_to_follow) => {
@@ -27,7 +26,7 @@ export function follow_cron() {
 				users.updateOne(
 					{ _id : new ObjectId(user._id) },
 					{
-						$push : {
+						$addToSet : {
 							following : {
 								$each : users_to_follow
 							}
