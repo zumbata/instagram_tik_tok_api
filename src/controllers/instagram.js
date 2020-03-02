@@ -99,8 +99,7 @@ router.post("/instagram/login", (req, res) => {
 					sess.uid = res2.ops[0]._id;
 				})
 			else
-				sess.uid = item._id
-			console.log("Getting here " + sess.uid)
+				sess.uid = item._id;
 			res.redirect('/instagram');
 		})
 	}).catch(
